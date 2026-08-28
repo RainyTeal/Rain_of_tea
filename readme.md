@@ -1,6 +1,8 @@
-# Firefly
+# Rain of Tea
 
 一个基于 **FastAPI + SQLModel + Jinja2** 的 AI 对话网站后端与前端。
+
+> **项目缘起**：本项目是原 **firefly** 项目的**继承与延续版本**，在其基础上重构、脱敏，并面向开源维护。
 
 > ⚠️ 本项目仍在开发中，代码可能存在未完成功能与潜在的稳定性 / 安全问题，请勿直接用于生产环境。
 
@@ -27,7 +29,7 @@ pip install -r requirements.txt
 
 ## 配置
 
-复制 `.env.example` 为 `.env`，并填写你自己的配置
+复制 `.env.example` 为 `.env`，并填写你自己的配置（不要把真实密钥提交到仓库）：
 
 ```bash
 cp .env.example .env
