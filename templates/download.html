@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="{{ theme_class | default('theme-light') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>下载中心 | Firefly</title>
+    <style>
+        /* ===== CSS 主题变量 ===== */
+        :root {
+            --bg-body: #1A1A1E;
+            --bg-overlay: rgba(255, 255, 255, 0.82);
+            --text-primary: #1A1A1E;
+            --text-secondary: #4A3836;
+            --text-muted: #8C5F4E;
+            --accent-primary: #8C5F4E;
+            --accent-primary-hover: #4A3836;
+            --accent-danger: #992836;
+            --border-light: #D8DCE2;
+            --border-medium: #C8E0E8;
+            --border-dark: #4A3836;
+            --border-accent: #E8B8C0;
+            --scrollbar-thumb: #8C5F4E;
+            --scrollbar-track: rgba(216, 220, 226, 0.2);
+            --card-bg: #FFFFFF;
+            --tool-bg: rgba(255, 255, 255, 0.96);
+            --input-bg: #FFFFFF;
+            --input-border: var(--border-light);
+            --status-bg: rgba(216, 220, 226, 0.45);
+            --btn-enter-bg: #D8DCE2;
+            --btn-enter-color: var(--text-primary);
+            --btn-dl-bg: var(--accent-primary);
+            --btn-dl-hover: var(--accent-primary-hover);
+            --btn-del-bg: var(--accent-danger);
+            --btn-create-bg: var(--accent-primary);
+        }
+        .theme-light {
+            --bg-body: #cae3db;
+            --bg-overlay: rgba(246, 251, 249, 0.70);
+            --text-primary: #2c5a4b;
+            --text-secondary: #346454;
+            --text-muted: #6e9b8a;
+            --accent-primary: #7fb7a4;
+            --accent-primary-hover: #5f9e88;
+            --accent-danger: #e79c9c;
+            --border-light: #d4e8df;
+            --border-medium: #d4e6de;
+            --border-dark: #c8e0d6;
+            --border-accent: #dfede6;
+            --scrollbar-thumb: #9fcbbc;
+            --scrollbar-track: rgba(197, 216, 208, 0.3);
+            --card-bg: #FFFFFF;
+            --tool-bg: rgba(248, 253, 249, 0.96);
+            --input-bg: #FFFFFF;
+            --input-border: #c7e8d8;
+            --status-bg: #eef4f1;
+            --btn-enter-bg: #cfe6df;
+            --btn-enter-color: #2f6b5c;
+            --btn-dl-bg: #7fb7a4;
+            --btn-dl-hover: #5f9e88;
+            --btn-del-bg: #d55a4d;
+            --btn-create-bg: #8cb4a6;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html, body { height:100%; overflow:hidden !important; touch-action:none !important; overscroll-behavior:none; }
+        body { background-color:var(--bg-body); background-image:url('/static/bg.png'); background-size:cover; background-position:center; background-attachment:fixed; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif; color:var(--text-primary); }
+        .main-content { position:fixed; top:1.5rem; left:1.5rem; right:1.5rem; bottom:1.5rem; padding:2rem 2.5rem; overflow-y:auto; overflow-x:hidden; background:var(--bg-overlay); border-radius:28px; box-shadow:var(--shadow-lg, 0 8px 20px rgba(0,20,12,0.12)); }
+        h1 { font-size: 2rem; margin-bottom: 0.75rem; border-left: 4px solid var(--accent-danger, #992836); padding-left: 1rem; color:var(--text-primary); }
+        p { line-height: 1.8; color: var(--text-secondary); }
+        .tool-panel { margin-top: 1.5rem; background: var(--tool-bg); border: 1px solid var(--border-accent); border-radius: 24px; padding: 1.5rem; }
+        .form-row { display:flex; gap:.75rem; flex-wrap:wrap; margin-bottom:1rem; }
+        .form-row input { flex:1; min-width:220px; padding: .95rem 1rem; border-radius: 18px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--text-primary); }
+        .form-row button { padding:.95rem 1.3rem; border:none; border-radius:18px; background:var(--btn-create-bg); color:#fff; font-weight:600; cursor:pointer; transition: .2s; }
+        .form-row button:hover { background:var(--accent-primary-hover); }
+        .download-list { margin-top: 1rem; display:grid; gap:1rem; }
+        .download-item { display:flex; justify-content:space-between; align-items:center; gap:.75rem; padding:1rem 1.1rem; border-radius:18px; border:1px solid var(--border-accent); background:var(--card-bg); flex-wrap:wrap; }
+        .download-item span { word-break:break-all; font-size:1rem; color:var(--text-primary); }
+        .item-actions { display:flex; gap:0.6rem; }
+        .item-actions button { padding:.6rem 1rem; border:none; border-radius:14px; cursor:pointer; font-weight:500; transition:0.2s; }
+        .enter-btn { background:var(--btn-enter-bg); color:var(--btn-enter-color); }
+        .enter-btn:hover { background:var(--border-medium); }
+        .download-btn { background:var(--btn-dl-bg); color:#fff; }
+        .download-btn:hover { background:var(--btn-dl-hover); }
+        .delete-btn { background:var(--btn-del-bg); color:#fff; }
+        .delete-btn:hover { filter:brightness(0.85); }
+        .create-btn { background:var(--btn-create-bg); color:#fff; }
+        .create-btn:hover { background:var(--accent-primary-hover); }
+        .small-btn { padding:.55rem .9rem; border:none; border-radius:14px; background:var(--btn-enter-bg); color:var(--btn-enter-color); font-weight:600; cursor:pointer; transition:.2s; }
+        .small-btn:hover { background:var(--border-medium); }
+        .status-row { margin-top:.9rem; display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; }
+        .status { color:var(--text-secondary); background:var(--status-bg); padding:.7rem 1rem; border-radius:20px; font-size:0.9rem; word-break:break-all; flex:1; }
+        .breadcrumb { margin-bottom:1rem; display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+        .breadcrumb a { color:var(--accent-primary); text-decoration:none; font-weight:500; cursor:pointer; }
+        .breadcrumb a:hover { text-decoration:underline; }
+        footer { margin-top:2rem; text-align:center; font-size:.8rem; color:var(--text-muted); }
+        .main-content::-webkit-scrollbar { width:6px; }
+        .main-content::-webkit-scrollbar-track { background:var(--scrollbar-track); border-radius:10px; }
+        .main-content::-webkit-scrollbar-thumb { background:var(--scrollbar-thumb); border-radius:10px; }
+        @media (max-width:768px) { .main-content { top:1rem; left:1rem; right:1rem; bottom:1rem; padding:1.2rem; } }
+    </style>
+</head>
+<body style="background-image: url('{{ bg_url | default('/static/bg.png') }}');">
+    <main class="main-content">
+        <div class="breadcrumb" id="breadcrumb">
+            <a href="/">主页</a> > <span>下载中心</span>
+        </div>
+        <h1>下载中心</h1>
+        <p>支持浏览 FTP 根目录下子目录，点击“打开”可进入目录或打开文件，点击“下载”获取文件。</p>
+
+        <div class="tool-panel">
+            <div class="form-row">
+                <button id="refreshBtn" type="button" class="create-btn">刷新目录</button>
+                <button id="uploadBtn" type="button" class="download-btn">上传文件</button>
+            </div>
+            <form id="mkdirForm">
+                <div class="form-row">
+                    <input id="newDirName" type="text" placeholder="请输入新目录名称，例如：new-folder">
+                    <button type="submit" class="create-btn">新建目录</button>
+                </div>
+            </form>
+            <div class="status-row">
+                <button id="parentBtn" type="button" class="small-btn">←</button>
+                <div class="status" id="statusText">当前路径：/。点击“刷新目录”或使用面包屑导航。</div>
+            </div>
+            <input id="uploadInput" type="file" style="display:none;" />
+            <div class="download-list" id="downloadList"></div>
+        </div>
+    </main>
+    <script>
+        const parentBtn = document.getElementById('parentBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadInput = document.getElementById('uploadInput');
+        const downloadList = document.getElementById('downloadList');
+        const statusText = document.getElementById('statusText');
+        const breadcrumbDiv = document.getElementById('breadcrumb');
+
+        let currentPath = '';      // 后端返回的绝对本地路径
+        let currentRelPath = '/';  // 相对于 FTP 根目录的路径
+
+        function normalizePathForApi(path) {
+            return path.replace(/\\/g, '/').trim();
+        }
+
+        function formatRelPath(path) {
+            if (!path || path === '/') return '/';
+            return '/' + path.replace(/^\/+/, '').replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/+$/, '');
+        }
+
+        function updateBreadcrumb(relPath) {
+            breadcrumbDiv.innerHTML = `<a href="/">主页</a> > <span>下载中心</span>`;
+            const normalized = formatRelPath(relPath);
+            if (normalized === '/') return;
+
+            const parts = normalized.split('/').filter(Boolean);
+            let accumulated = '';
+
+            const linkSpan = document.createElement('span');
+            linkSpan.innerHTML = ' > ';
+            breadcrumbDiv.appendChild(linkSpan);
+
+            for (let i = 0; i < parts.length; i++) {
+                accumulated += `/${parts[i]}`;
+                const sepSpan = document.createElement('span');
+                sepSpan.textContent = ' > ';
+                breadcrumbDiv.appendChild(sepSpan);
+                const crumbLink = document.createElement('a');
+                crumbLink.textContent = parts[i];
+                crumbLink.href = '#';
+                crumbLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    loadDirectory(accumulated);
+                });
+                breadcrumbDiv.appendChild(crumbLink);
+            }
+        }
+
+        function getParentPath(path) {
+            const normalized = formatRelPath(path);
+            if (normalized === '/' || normalized === '') return '/';
+            const parts = normalized.split('/').filter(Boolean);
+            if (parts.length <= 1) return '/';
+            return '/' + parts.slice(0, -1).join('/');
+        }
+
+        async function loadParentDirectory() {
+            loadDirectory(getParentPath(currentRelPath));
+        }
+
+        function downloadFile(relativePath, fileName) {
+            const url = `/api/download?path=${encodeURIComponent(relativePath)}`;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            statusText.innerHTML = `✅ 文件 “${fileName}” 下载已开始。`;
+            setTimeout(() => {
+                if (statusText.innerHTML.includes('下载已开始')) statusText.innerHTML = `当前路径：${currentPath}`;
+            }, 3000);
+        }
+
+        async function openFile(filePath, fileName) {
+            try {
+                const response = await fetch('/api/open_file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(filePath)
+                });
+                if (!response.ok) {
+                    let errorMsg = `打开失败 (${response.status})`;
+                    try {
+                        const errData = await response.json();
+                        errorMsg = errData.error || errorMsg;
+                    } catch (e) {}
+                    throw new Error(errorMsg);
+                }
+                const blob = await response.blob();
+                const openUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = openUrl;
+                a.click();
+                URL.revokeObjectURL(openUrl);
+                statusText.innerHTML = `✅ 正在打开文件 "${fileName}"...`;
+                setTimeout(() => {
+                    if (statusText.innerHTML.includes('正在打开文件')) statusText.innerHTML = `当前路径：${currentPath}`;
+                }, 3000);
+            } catch (err) {
+                statusText.innerHTML = `❌ 打开失败：${err.message}`;
+            }
+        }
+
+        async function deleteEntry(relativePath, entryName, isDirectory) {
+            const confirmText = isDirectory ? `确认删除目录 “${entryName}” 及其全部内容吗？` : `确认删除文件 “${entryName}” 吗？`;
+            if (!confirm(confirmText)) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: currentRelPath, name: entryName })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data?.error || '删除失败');
+                }
+                statusText.innerHTML = `✅ ${isDirectory ? '目录' : '文件'} “${entryName}” 删除成功。`;
+                loadDirectory(currentRelPath);
+            } catch (err) {
+                statusText.innerHTML = `❌ 删除失败：${err.message}`;
+            }
+        }
+
+        async function renameEntry(relativePath, entryName) {
+            const newName = prompt(`请输入“${entryName}”的新名称：`, entryName);
+            if (!newName || !newName.trim() || newName.trim() === entryName) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/rename', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: currentRelPath, name: entryName, new_name: newName.trim() })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data?.error || '重命名失败');
+                }
+                statusText.innerHTML = `✅ 名称已修改为 “${newName.trim()}”。`;
+                loadDirectory(currentRelPath);
+            } catch (err) {
+                statusText.innerHTML = `❌ 重命名失败：${err.message}`;
+            }
+        }
+
+        async function uploadFile() {
+            if (!uploadInput.files || uploadInput.files.length === 0) {
+                return;
+            }
+            const file = uploadInput.files[0];
+            if (!file) {
+                return;
+            }
+            const formData = new FormData();
+            formData.append('path', currentRelPath);
+            formData.append('file', file);
+            statusText.innerHTML = '正在上传文件...';
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data?.error || '上传失败');
+                }
+                statusText.innerHTML = `✅ 文件 “${file.name}” 上传成功。`;
+                loadDirectory(currentRelPath);
+            } catch (err) {
+                statusText.innerHTML = `❌ 上传失败：${err.message}`;
+            } finally {
+                uploadInput.value = '';
+            }
+        }
+
+        async function createDirectory(dirName) {
+            if (!dirName || !dirName.trim()) {
+                statusText.innerHTML = '❌ 请输入有效的目录名称。';
+                return;
+            }
+            const normalizedName = dirName.trim().replace(/\\/g, '/').replace(/\/+$/, '');
+            if (!normalizedName) {
+                statusText.innerHTML = '❌ 请输入有效的目录名称。';
+                return;
+            }
+            try {
+                const response = await fetch('/api/mkdir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: currentRelPath, name: normalizedName })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data?.error || '创建目录失败');
+                }
+                statusText.innerHTML = `✅ 目录 “${normalizedName}” 创建成功。`; 
+                document.getElementById('newDirName').value = '';
+                loadDirectory(currentRelPath);
+            } catch (err) {
+                statusText.innerHTML = `❌ 创建目录失败：${err.message}`;
+            }
+        }
+
+        async function loadDirectory(rawPath) {
+            let requestPath = normalizePathForApi(rawPath);
+            if (!requestPath) {
+                statusText.textContent = '路径不能为空';
+                return;
+            }
+            if (!requestPath.startsWith('/')) {
+                requestPath = `/${requestPath}`;
+            }
+            statusText.textContent = '正在读取目录...';
+            downloadList.innerHTML = '';
+            try {
+                const response = await fetch('/api/dir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestPath)
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data?.error || '目录读取失败');
+                }
+                currentPath = data.path;
+                currentRelPath = requestPath;
+                const displayPath = currentPath.replace(/\\/g, '/');
+                statusText.innerHTML = `📁 当前路径：${displayPath}`;
+                updateBreadcrumb(currentRelPath);
+
+                if (!Array.isArray(data.entries) || data.entries.length === 0) {
+                    downloadList.innerHTML = '<div style="padding: 1rem; text-align:center;">目录为空。</div>';
+                    return;
+                }
+
+                // helper: 检测某个相对路径是否为目录（通过调用后端 /api/dir）
+                async function checkIsDirectory(relPath) {
+                    try {
+                        const resp = await fetch('/api/dir', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(relPath)
+                        });
+                        return resp.ok;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                for (const entry of data.entries) {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'download-item';
+
+                    const nameSpan = document.createElement('span');
+                    // 初始猜测：包含点视作文件（有扩展名），没有点视作目录
+                    let isDirGuess = entry.includes('.') ? false : true;
+                    nameSpan.textContent = `${isDirGuess ? '📁' : '📄'} ${entry}`;
+
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'item-actions';
+
+                    const openBtn = document.createElement('button');
+                    openBtn.textContent = '打开';
+                    openBtn.className = 'enter-btn';
+
+                    const fileRelPath = currentRelPath === '/' ? `/${entry}` : `${currentRelPath}/${entry}`;
+
+                    openBtn.addEventListener('click', async () => {
+                        const isDir = await checkIsDirectory(fileRelPath);
+                        if (isDir) {
+                            loadDirectory(fileRelPath);
+                        } else {
+                            openFile(fileRelPath, entry);
+                        }
+                    });
+
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.textContent = '下载';
+                    downloadBtn.className = 'download-btn';
+                    downloadBtn.style.display = isDirGuess ? 'none' : 'inline-block';
+                    downloadBtn.addEventListener('click', () => {
+                        downloadFile(fileRelPath, entry);
+                    });
+
+                    const renameBtn = document.createElement('button');
+                    renameBtn.textContent = '重命名';
+                    renameBtn.className = 'create-btn';
+                    renameBtn.addEventListener('click', () => {
+                        renameEntry(fileRelPath, entry);
+                    });
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '删除';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.addEventListener('click', async () => {
+                        // 确认当前是否为目录，再传入正确的 isDirectory 标识
+                        const isDir = await checkIsDirectory(fileRelPath);
+                        deleteEntry(fileRelPath, entry, isDir);
+                    });
+
+                    actionsDiv.appendChild(openBtn);
+                    actionsDiv.appendChild(downloadBtn);
+                    actionsDiv.appendChild(renameBtn);
+                    actionsDiv.appendChild(deleteBtn);
+                    itemDiv.appendChild(nameSpan);
+                    itemDiv.appendChild(actionsDiv);
+                    downloadList.appendChild(itemDiv);
+
+                    // 异步确认真实类型并更新 UI（覆盖初始猜测）
+                    (async () => {
+                        const isDir = await checkIsDirectory(fileRelPath);
+                        if (isDir) {
+                            nameSpan.textContent = `📁 ${entry}`;
+                            downloadBtn.style.display = 'none';
+                        } else {
+                            nameSpan.textContent = `📄 ${entry}`;
+                            downloadBtn.style.display = 'inline-block';
+                        }
+                    })();
+                }
+            } catch (err) {
+                statusText.innerHTML = `⚠️ 错误：${err.message}`;
+                downloadList.innerHTML = '';
+                currentPath = '';
+                currentRelPath = '/';
+            }
+        }
+
+        const mkdirForm = document.getElementById('mkdirForm');
+        const newDirNameInput = document.getElementById('newDirName');
+
+        parentBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadParentDirectory();
+        });
+
+        uploadBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            uploadInput.click();
+        });
+
+        uploadInput.addEventListener('change', () => {
+            uploadFile();
+        });
+
+        refreshBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadDirectory(currentRelPath || '/');
+        });
+
+        mkdirForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            createDirectory(newDirNameInput.value);
+        });
+
+        loadDirectory(currentRelPath);
+
+        // 同步主题
+        try {
+            const resp = await fetch('/api/check_bk', { credentials: 'same-origin' });
+            const data = await resp.json();
+            if (data.name === '淡青') {
+                document.documentElement.classList.add('theme-light');
+            }
+            if (data.url) {
+                document.body.style.backgroundImage = `url('${data.url}')`;
+            }
+        } catch(e) {}
+    </script>
+</body>
+</html>

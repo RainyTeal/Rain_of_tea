@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="{{ theme_class | default('theme-light') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>AI 聊天</title>
+    <style>
+        /* ===== 黑白棕战斗风格（与主页统一） ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ===== CSS 主题变量（与主页同步） ===== */
+        :root {
+            --bg-body: #1A1A1E;
+            --bg-overlay: rgba(255, 255, 255, 0.82);
+            --bg-input: #FFFFFF;
+            --chip-bg: rgba(200, 205, 212, 0.6);
+            --text-primary: #1A1A1E;
+            --text-secondary: #4A3836;
+            --text-muted: #8C5F4E;
+            --text-on-accent: #FFFFFF;
+            --accent-primary: #8C5F4E;
+            --accent-primary-hover: #4A3836;
+            --accent-danger: #992836;
+            --accent-info: #63A8E0;
+            --border-light: #D8DCE2;
+            --border-medium: #C8E0E8;
+            --border-dark: #4A3836;
+            --shadow-lg: 0 8px 20px rgba(26, 26, 30, 0.25);
+            --scrollbar-thumb: #8C5F4E;
+            --scrollbar-track: rgba(216, 220, 226, 0.2);
+            --bubble-assistant-bg: rgba(216, 220, 226, 0.55);
+            --bubble-system-bg: rgba(216, 220, 226, 0.45);
+        }
+        .theme-light {
+            --bg-body: #cae3db;
+            --bg-overlay: rgba(246, 251, 249, 0.70);
+            --bg-input: #f7faf7;
+            --chip-bg: rgba(216, 220, 226, 0.5);
+            --text-primary: #2c5a4b;
+            --text-secondary: #346454;
+            --text-muted: #6e9b8a;
+            --text-on-accent: #FFFFFF;
+            --accent-primary: #7fb7a4;
+            --accent-primary-hover: #5f9e88;
+            --accent-danger: #e79c9c;
+            --accent-info: #5f9e88;
+            --border-light: #d4e8df;
+            --border-medium: #d4e6de;
+            --border-dark: #c8e0d6;
+            --shadow-lg: 0 8px 20px rgba(0, 20, 12, 0.04);
+            --scrollbar-thumb: #9fcbbc;
+            --scrollbar-track: rgba(197, 216, 208, 0.3);
+            --bubble-assistant-bg: rgba(207, 230, 221, 0.6);
+            --bubble-system-bg: rgba(239, 247, 243, 0.5);
+        }
+
+        /* 全局锁死页面滚动，兼容手机回弹（与主页对齐） */
+        html,
+        body {
+            height: 100%;
+            overflow: hidden !important;
+            touch-action: none !important;
+            overscroll-behavior: none;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            background-image: url('/static/bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Noto Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            margin: 1.5rem;
+            background: var(--bg-overlay);
+            border-radius: 28px;
+            box-shadow: var(--shadow-lg);
+            min-height: calc(100vh - 3rem);
+            max-height: calc(100vh - 3rem);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: var(--border-light);
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-light);
+            box-shadow: 0 2px 8px rgba(26, 26, 30, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 120;
+            backdrop-filter: blur(4px);
+        }
+
+        .chat-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .chat-title .emoji {
+            font-size: 1.8rem;
+        }
+
+        .chat-user {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            background: var(--chip-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 16px;
+            border: 1px solid var(--border-light);
+        }
+
+        .model-switcher {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .model-switcher select {
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 0.3rem 0.5rem;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            outline: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .messages-wrapper {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 1.5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .messages-wrapper::-webkit-scrollbar {
+            width: 8px;
+        }
+        .messages-wrapper::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+            border-radius: 4px;
+        }
+        .messages-wrapper::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 4px;
+        }
+        .messages-wrapper::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary-hover);
+        }
+
+        .message {
+            display: flex;
+            gap: 0.8rem;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--border-light);
+            border: 2px solid var(--border-medium);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        .message.user .message-avatar {
+            background: var(--accent-primary);
+            color: #fff;
+        }
+
+        .message-content {
+            max-width: 65%;
+            display: flex;
+            flex-direction: column;
+        }
+        .message.user .message-content {
+            align-items: flex-end;
+        }
+
+        .message-text {
+            padding: 0.9rem 1.2rem;
+            border-radius: 18px;
+            line-height: 1.5;
+            word-break: break-word;
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+        }
+        .message.assistant .message-text {
+            background: var(--bubble-assistant-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-light);
+        }
+        .message.user .message-text {
+            background: var(--accent-primary);
+            color: var(--text-on-accent);
+            border: 1px solid var(--accent-primary-hover);
+        }
+        .message.system .message-text {
+            background: var(--bubble-system-bg);
+            color: var(--text-muted);
+            border: 1px solid var(--border-light);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.4rem;
+            padding: 0 0.2rem;
+        }
+        .message-content img {
+            max-width: 320px;
+            max-height: 360px;
+            border-radius: 12px;
+            display: block;
+            margin-top: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+        }
+
+        .message-loading {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .message-loading span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            animation: bounce 1.4s infinite;
+        }
+        .message-loading span:nth-child(2) { animation-delay: 0.2s; }
+        .message-loading span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce {
+            0%,60%,100% { opacity: 0.5; transform: translateY(0); }
+            30% { opacity: 1; transform: translateY(-10px); }
+        }
+
+        .input-wrapper {
+            background: rgba(255, 255, 255, 0.85);
+            border-top: 1px solid var(--border-light);
+            padding: 1.5rem 2rem;
+            display: flex;
+            gap: 0.8rem;
+            align-items: flex-end;
+        }
+        .input-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        #messageInput {
+            flex: 1;
+            min-height: 40px;
+            max-height: 120px;
+            padding: 0.4rem 0.9rem;
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: none;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        #messageInput:focus {
+            background: #fff;
+            border-color: var(--accent-info);
+            box-shadow: 0 0 0 3px rgba(99, 168, 224, 0.12);
+        }
+        #messageInput::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 12px;
+            background: var(--accent-primary);
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .send-btn:hover:not(:disabled) {
+            background: var(--accent-primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(140, 95, 78, 0.35);
+        }
+        .send-btn:active:not(:disabled) { transform: translateY(0); }
+        .send-btn:disabled {
+            background: var(--border-light);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .history-btn {
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 12px;
+            background: var(--chip-bg);
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .history-btn:hover {
+            background: var(--border-medium);
+            border-color: var(--accent-info);
+        }
+
+        .markdown-toggle-btn {
+            padding: 0.6rem 0.9rem;
+            border: none;
+            border-radius: 14px;
+            background: var(--chip-bg);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border-light);
+        }
+        .markdown-toggle-btn:hover {
+            background: var(--border-medium);
+            color: var(--text-primary);
+        }
+        .markdown-toggle-btn.active {
+            background: var(--accent-primary);
+            color: #fff;
+            border-color: var(--accent-primary-hover);
+        }
+
+        .msg-seq {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            padding: 0.1rem 0.5rem;
+            border-radius: 999px;
+            background: var(--chip-bg);
+            display: inline-block;
+            margin-bottom: 0.3rem;
+            align-self: flex-start;
+            user-select: none;
+        }
+
+        .edit-btn {
+            margin-left: 8px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            cursor: pointer;
+        }
+        .edit-controls { display: flex; gap: 6px; margin-top:6px; }
+        .edit-controls button { padding:6px 10px; border-radius:8px; border:none; cursor:pointer; }
+        .edit-save { background:var(--accent-primary); color:#fff; }
+        .edit-cancel { background:var(--border-light); color:var(--text-primary); }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            gap: 1rem;
+        }
+        .empty-state-icon { font-size: 3rem; opacity: 0.6; }
+        .empty-state-text { font-size: 1rem; }
+
+        /* 侧栏（仅保留样式，未使用） */
+        .history-sidebar { display: none; }
+
+        footer {
+            text-align: center;
+            padding: 0.8rem;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-light);
+        }
+
+        @media (max-width: 768px) {
+            .chat-container { margin:0.8rem; border-radius:18px; min-height:calc(100vh - 1.6rem); max-height:calc(100vh - 1.6rem); box-shadow:var(--shadow-lg); border:none; }
+            .chat-header { padding:0.8rem 1rem; flex-wrap:wrap; gap:0.4rem; }
+            .chat-header > div:last-child { flex-wrap:wrap; gap:0.4rem; }
+            .messages-wrapper { padding:0.8rem 1rem; }
+            .input-wrapper { padding:0.8rem 1rem; }
+            .message-content { max-width:85%; }
+            .chat-user { font-size:0.8rem; padding:0.3rem 0.6rem; }
+            .chat-title { font-size:1rem; gap:0.4rem; }
+            .chat-title .emoji { font-size:1.3rem; }
+            .chat-title a { font-size:0.85rem !important; }
+            .model-switcher { font-size:0.8rem; padding:0.2rem 0.5rem; }
+            .model-switcher select { font-size:0.8rem; padding:0.2rem 0.3rem; }
+            .markdown-toggle-btn { font-size:0.8rem; padding:0.4rem 0.6rem; }
+            #messageInput { font-size:0.9rem; padding:0.35rem 0.7rem; }
+        }
+    </style>
+</head>
+<body style="background-image: url('{{ bg_url | default('/static/bg.png') }}');">
+    <!-- 主容器 -->
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="chat-title">
+                <a href="/" style="text-decoration:none;color:var(--text-primary);display:flex;align-items:center;gap:0.4rem;font-size:1rem;font-weight:400;margin-right:0.5rem;">← 主页</a>
+                <span class="emoji">[AI]</span>
+                <span id="chatTitle">AI 助手</span>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <span class="chat-user" id="chatUsername">用户</span>
+                <div class="model-switcher">
+                    <label for="modelSelect">模型：</label>
+                    <select id="modelSelect">
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="chatgpt">ChatGPT</option>
+                    </select>
+                </div>
+                <div class="model-switcher">
+                    <label for="promptSelect">提示词：</label>
+                    <select id="promptSelect"><option value="">加载中...</option></select>
+                </div>
+                <button class="markdown-toggle-btn" id="forkBtn" title="截取当前对话的一部分，用所选提示词创建新对话">截取移植</button>
+                <button class="markdown-toggle-btn active" id="markdownToggleBtn">Markdown 预览</button>
+            </div>
+        </div>
+
+        <div class="messages-wrapper" id="messagesWrapper">
+            <div class="empty-state">
+                <div class="empty-state-icon">[消息]</div>
+                <div class="empty-state-text">开始新的对话吧</div>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <div class="input-box">
+                <textarea id="messageInput" placeholder="输入消息... 支持 Markdown (Enter发送，Shift+Enter换行)"></textarea>
+            </div>
+            <div class="input-actions">
+                <button class="send-btn" id="sendBtn">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 后端注入数据（保持原样） -->
+    <script>
+        window.__templateData__ = {
+            username: {{ username | default('') | tojson | safe }},
+            avatar: {{ avatar | default('') | tojson | safe }},
+            talkId: {{ talk_id | default('') | tojson | safe }},
+            talkName: {{ talk_name | default('') | tojson | safe }},
+            messages: {{ content | default([]) | tojson | safe }}
+        };
+    </script>
+
+    <!-- CDN 依赖 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked@5.1.0/lib/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+
+    <script>
+        (async function() {
+            // ========== 库加载保障（与原版相同） ==========
+            async function loadScript(url, globalCheckName, timeout = 5000) {
+                return new Promise((resolve, reject) => {
+                    if (globalCheckName && window[globalCheckName]) return resolve(window[globalCheckName]);
+                    const s = document.createElement('script');
+                    s.src = url;
+                    s.async = true;
+                    let done = false;
+                    s.onload = () => {
+                        done = true;
+                        if (!globalCheckName || window[globalCheckName]) return resolve(window[globalCheckName] || true);
+                        setTimeout(() => resolve(window[globalCheckName] || true), 10);
+                    };
+                    s.onerror = (e) => { if (!done) reject(e); };
+                    document.head.appendChild(s);
+                    if (timeout > 0) {
+                        setTimeout(() => {
+                            if (!done) resolve(null);
+                        }, timeout);
+                    }
+                });
+            }
+            async function ensureLibs() {
+                const tasks = [];
+                if (typeof marked === 'undefined') {
+                    tasks.push(loadScript('https://cdn.jsdelivr.net/npm/marked@5.1.1/marked.min.js', 'marked'));
+                    tasks.push(loadScript('https://unpkg.com/marked@5.1.1/marked.min.js', 'marked'));
+                }
+                if (typeof DOMPurify === 'undefined') {
+                    tasks.push(loadScript('https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js', 'DOMPurify'));
+                    tasks.push(loadScript('https://unpkg.com/dompurify@2.4.0/dist/purify.min.js', 'DOMPurify'));
+                }
+                if (typeof katex === 'undefined') {
+                    tasks.push(loadScript('https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js', 'katex'));
+                    tasks.push(loadScript('https://unpkg.com/katex@0.16.8/dist/katex.min.js', 'katex'));
+                }
+                if (typeof hljs === 'undefined') {
+                    tasks.push(loadScript('https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js', 'hljs'));
+                    tasks.push(loadScript('https://unpkg.com/highlight.js@11.9.0/lib/common.min.js', 'hljs'));
+                }
+                await Promise.allSettled(tasks);
+                if (typeof window.DOMPurify === 'undefined' && window.purify) window.DOMPurify = window.purify;
+                return {
+                    marked: typeof window.marked !== 'undefined',
+                    katex: typeof window.katex !== 'undefined',
+                    DOMPurify: typeof window.DOMPurify !== 'undefined',
+                    hljs: typeof window.hljs !== 'undefined'
+                };
+            }
+            await ensureLibs();
+
+            // ========== 全局状态 ==========
+            const templateData = window.__templateData__ || {};
+            const state = {
+                talkId: templateData.talkId || '',
+                talkName: templateData.talkName || 'AI 助手',
+                username: templateData.username || '用户',
+                avatar: templateData.avatar || '',
+                messages: templateData.messages || [],
+                isSending: false,
+                isMarkdown: true,
+                currentModel: '',
+                modelOptions: [],
+                allTalks: []
+            };
+
+            const MAX_IMAGE_UPLOADS = 2;
+            const MAX_IMAGE_DIM = 1024;
+            const IMAGE_QUALITY = 0.6;
+            const MAX_TEXT_CHARS = 4000;
+
+            // DOM 引用
+            const messagesWrapper = document.getElementById('messagesWrapper');
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const chatTitle = document.getElementById('chatTitle');
+            const chatUsername = document.getElementById('chatUsername');
+            const markdownToggleBtn = document.getElementById('markdownToggleBtn');
+            const modelSelect = document.getElementById('modelSelect');
+            const promptSelect = document.getElementById('promptSelect');
+            const forkBtn = document.getElementById('forkBtn');
+
+            // ================================================================
+            //  ★★★ 滚动修复核心逻辑 ★★★
+            //  策略：更新前检测是否在底部 → 更新后按需维持位置，不依赖可变全局标志
+            // ================================================================
+
+            /** 判断滚动容器当前是否处于底部（容差 50px，兼容高 DPI 小数像素） */
+            function isAtBottom() {
+                const el = messagesWrapper;
+                return el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+            }
+
+            /** 强制滚动到底部 */
+            function scrollToBottom() {
+                messagesWrapper.scrollTop = messagesWrapper.scrollHeight;
+            }
+
+            /** 若操作前处于底部，则操作后跟随到底部 */
+            function maintainScroll(wasAtBottom) {
+                if (wasAtBottom) {
+                    scrollToBottom();
+                }
+            }
+
+            // ================================================================
+            //  工具函数（与原版一致）
+            // ================================================================
+            function escapeHtml(text) {
+                return String(text || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function getTextFromContent(content) {
+                if (typeof content === 'string') return content;
+                if (Array.isArray(content)) {
+                    return content.filter(item => item && item.type === 'text')
+                        .map(item => item.text || '')
+                        .join('');
+                }
+                return String(content || '');
+            }
+
+            function getImagesFromContent(content) {
+                if (!Array.isArray(content)) return [];
+                return content.filter(item => item && item.type === 'image_url' && item.image_url && item.image_url.url)
+                    .map(item => item.image_url.url);
+            }
+
+            function renderMarkdown(text) {
+                if (!text) return '';
+                const originalText = text;
+                function renderFull(mdText) {
+                    const mathBlocksLocal = [];
+                    let t = mdText.replace(/\$\$([\s\S]+?)\$\$/g, (m, expr) => {
+                        const id = `@@MATH_BLOCK_${mathBlocksLocal.length}@@`;
+                        mathBlocksLocal.push({ type: 'display', expr });
+                        return id;
+                    });
+                    t = t.replace(/\$([^\$\n]+)\$/g, (m, expr) => {
+                        const id = `@@MATH_INLINE_${mathBlocksLocal.length}@@`;
+                        mathBlocksLocal.push({ type: 'inline', expr });
+                        return id;
+                    });
+
+                    const html = (typeof marked !== 'undefined') ? marked.parse(t, {
+                        gfm: true,
+                        breaks: false,
+                        headerIds: false,
+                        mangle: false,
+                        highlight: function(code, lang) {
+                            try {
+                                if (typeof hljs !== 'undefined' && lang && hljs.getLanguage && hljs.getLanguage(lang)) {
+                                    return hljs.highlight(code, { language: lang }).value;
+                                }
+                                if (typeof hljs !== 'undefined' && hljs.highlightAuto) return hljs.highlightAuto(code).value;
+                            } catch (e) {}
+                            return escapeHtml(code);
+                        }
+                    }) : escapeHtml(t).replace(/\n/g, '<br>');
+
+                    let replaced = html;
+                    mathBlocksLocal.forEach((m, idx) => {
+                        let rendered = '';
+                        try {
+                            if (typeof katex !== 'undefined') {
+                                rendered = katex.renderToString(m.expr, { displayMode: m.type === 'display', throwOnError: false });
+                            } else {
+                                rendered = `<code>${escapeHtml(m.expr)}</code>`;
+                            }
+                        } catch (e) {
+                            rendered = `<code class="katex-error">${escapeHtml(m.expr)}</code>`;
+                        }
+                        const id = `@@MATH_${m.type === 'display' ? 'BLOCK' : 'INLINE'}_${idx}@@`;
+                        replaced = replaced.split(id).join(rendered);
+                    });
+
+                    try {
+                        if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
+                            return DOMPurify.sanitize(replaced, { ADD_TAGS: ['span', 'div'], ADD_ATTR: ['class', 'style'] });
+                        }
+                    } catch (e) { console.error('DOMPurify error:', e); }
+                    // 安全回退：DOMPurify 不可用时，不直接输出可能含恶意 HTML 的 replaced，
+                    // 而是返回转义后的纯文本（保留换行），避免 <img onerror> / <svg onload> 等 XSS。
+                    return escapeHtml(mdText).replace(/\n/g, '<br>');
+                }
+
+                if (typeof marked === 'undefined') {
+                    return renderFull(text);
+                }
+                if (/^[=]{3,}$/m.test(text)) {
+                    const regex = /^[=]{3,}$/gm;
+                    const seps = [];
+                    let m;
+                    while ((m = regex.exec(text)) !== null) {
+                        seps.push({ index: m.index, length: m[0].length });
+                    }
+                    const parts = [];
+                    let last = 0;
+                    for (let i = 0; i < seps.length; i++) {
+                        const s = seps[i];
+                        parts.push(text.slice(last, s.index));
+                        last = s.index + s.length;
+                    }
+                    parts.push(text.slice(last));
+
+                    const out = parts.map((p, idx) => {
+                        if (idx % 2 === 1) {
+                            return `<pre class="thinking" style="white-space:pre-wrap;background:rgba(225,225,213,0.3);padding:8px;border-radius:6px;color:#666;margin:6px 0;">${escapeHtml(p)}</pre>`;
+                        } else {
+                            return renderFull(p);
+                        }
+                    }).join('');
+                    return out;
+                }
+
+                const mathBlocks = [];
+                text = text.replace(/\$\$([\s\S]+?)\$\$/g, (m, expr) => {
+                    const id = `@@MATH_BLOCK_${mathBlocks.length}@@`;
+                    mathBlocks.push({ type: 'display', expr });
+                    return id;
+                });
+                text = text.replace(/\$([^\$\n]+)\$/g, (m, expr) => {
+                    const id = `@@MATH_INLINE_${mathBlocks.length}@@`;
+                    mathBlocks.push({ type: 'inline', expr });
+                    return id;
+                });
+
+                const html = marked.parse(text, {
+                    gfm: true,
+                    breaks: false,
+                    headerIds: false,
+                    mangle: false,
+                    highlight: function(code, lang) {
+                        try {
+                            if (lang && hljs.getLanguage(lang)) {
+                                return hljs.highlight(code, { language: lang }).value;
+                            }
+                            return hljs.highlightAuto(code).value;
+                        } catch (e) {
+                            return code;
+                        }
+                    }
+                });
+
+                let replaced = html;
+                mathBlocks.forEach((m, idx) => {
+                    let rendered = '';
+                    try {
+                        rendered = katex.renderToString(m.expr, { displayMode: m.type === 'display', throwOnError: false });
+                    } catch (e) {
+                        rendered = `<code class="katex-error">${escapeHtml(m.expr)}</code>`;
+                    }
+                    const id = `@@MATH_${m.type === 'display' ? 'BLOCK' : 'INLINE'}_${idx}@@`;
+                    replaced = replaced.split(id).join(rendered);
+                });
+
+                try {
+                    const purifier = (typeof DOMPurify !== 'undefined') ? DOMPurify : null;
+                    if (purifier && purifier.sanitize) {
+                        return purifier.sanitize(replaced, { ADD_TAGS: ['span', 'div'], ADD_ATTR: ['class', 'style'] });
+                    }
+                } catch (e) {
+                    console.error('DOMPurify error:', e);
+                }
+                // 安全回退：DOMPurify 不可用时，不直接输出可能含恶意 HTML 的 replaced，
+                // 而是返回转义后的原始纯文本（保留换行），避免 <img onerror> / <svg onload> 等 XSS。
+                return escapeHtml(originalText).replace(/\n/g, '<br>');
+            }
+
+            // ================================================================
+            //  消息渲染（含滚动恢复）
+            // ================================================================
+            function renderMessageContent(role, content) {
+                const textEl = document.createElement('div');
+                textEl.className = 'message-text';
+                const text = getTextFromContent(content);
+                if (role === 'assistant' && state.isMarkdown) {
+                    try {
+                        textEl.innerHTML = renderMarkdown(text);
+                        if (typeof hljs !== 'undefined') {
+                            textEl.querySelectorAll('pre code').forEach((block) => {
+                                try { hljs.highlightElement(block); } catch (e) {}
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Render message content failed:', e);
+                        textEl.textContent = text;
+                    }
+                } else {
+                    textEl.textContent = text;
+                }
+                return textEl;
+            }
+
+            // 渲染所有消息（保存并恢复滚动位置）
+            function renderMessages() {
+                // 保存当前滚动状态
+                const wasAtBottom = isAtBottom();
+                const prevScrollTop = messagesWrapper.scrollTop;
+                const prevScrollHeight = messagesWrapper.scrollHeight;
+
+                if (state.messages.length === 0) {
+                    messagesWrapper.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">[消息]</div>
+                            <div class="empty-state-text">开始新的对话吧</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                messagesWrapper.innerHTML = '';
+                let convNum = 0;
+                for (let idx = 0; idx < state.messages.length; idx++) {
+                    const msg = state.messages[idx];
+                    if (msg.role === 'system') continue;
+                    convNum += 1;
+
+                    const msgEl = document.createElement('div');
+                    msgEl.className = `message ${msg.role}`;
+
+                    const avatar = document.createElement('div');
+                    avatar.className = 'message-avatar';
+                    if (msg.role === 'user') {
+                        avatar.innerHTML = `<img src="${escapeHtml(state.avatar) || '/static/default_avatar.png'}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`;
+                    } else {
+                        avatar.textContent = '[AI]';
+                    }
+
+                    const content = document.createElement('div');
+                    content.className = 'message-content';
+
+                    const seqEl = document.createElement('div');
+                    seqEl.className = 'msg-seq';
+                    seqEl.textContent = '#' + convNum;
+                    seqEl.title = '消息序号（截取移植时使用）';
+                    content.appendChild(seqEl);
+
+                    const textEl = renderMessageContent(msg.role, msg.content);
+
+                    const timeEl = document.createElement('div');
+                    timeEl.className = 'message-time';
+                    timeEl.textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+                    content.appendChild(textEl);
+
+                    const contentImages = getImagesFromContent(msg.content);
+                    const allImages = [
+                        ...(Array.isArray(msg.pictures) ? msg.pictures : []),
+                        ...contentImages
+                    ];
+                    if (allImages.length > 0) {
+                        allImages.forEach((p) => {
+                            try {
+                                const img = document.createElement('img');
+                                if (typeof p === 'string') {
+                                    if (p.indexOf(',') !== -1) img.src = p;
+                                    else img.src = 'data:image/png;base64,' + p;
+                                } else if (p && p.dataUrl) {
+                                    img.src = p.dataUrl;
+                                }
+                                img.alt = '图片';
+                                content.appendChild(img);
+                            } catch (e) {}
+                        });
+                    }
+
+                    content.appendChild(timeEl);
+
+                    if (msg.role === 'user') {
+                        const btn = document.createElement('button');
+                        btn.className = 'edit-btn';
+                        btn.textContent = '编辑';
+                        btn.title = '编辑此消息并重新生成后续回复';
+                        btn.addEventListener('click', () => enterEditMode(idx, textEl));
+                        content.insertBefore(btn, timeEl);
+                    }
+
+                    msgEl.appendChild(avatar);
+                    msgEl.appendChild(content);
+                    messagesWrapper.appendChild(msgEl);
+                }
+
+                // 恢复滚动位置：若更新前不在底部则保持比例，否则滚到底部
+                if (!wasAtBottom && prevScrollHeight > 0) {
+                    const ratio = Math.min(1, prevScrollTop / prevScrollHeight);
+                    messagesWrapper.scrollTop = ratio * messagesWrapper.scrollHeight;
+                } else {
+                    scrollToBottom();
+                }
+            }
+
+            // ================================================================
+            //  添加消息（支持强制滚动）
+            // ================================================================
+            function addMessage(role, content, picturesBase64, forceScroll = false) {
+                const msgEl = document.createElement('div');
+                msgEl.className = `message ${role}`;
+
+                const avatar = document.createElement('div');
+                avatar.className = 'message-avatar';
+                if (role === 'user') {
+                    avatar.innerHTML = `<img src="${escapeHtml(state.avatar) || '/static/default_avatar.png'}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`;
+                } else {
+                    avatar.textContent = '[AI]';
+                }
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+
+                const textEl = renderMessageContent(role, content);
+
+                const timeEl = document.createElement('div');
+                timeEl.className = 'message-time';
+                timeEl.textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+                contentDiv.appendChild(textEl);
+
+                if (Array.isArray(picturesBase64) && picturesBase64.length > 0) {
+                    picturesBase64.forEach((p) => {
+                        try {
+                            const img = document.createElement('img');
+                            if (typeof p === 'string') {
+                                if (p.indexOf(',') !== -1) img.src = p;
+                                else img.src = 'data:image/png;base64,' + p;
+                            } else if (p && p.dataUrl) {
+                                img.src = p.dataUrl;
+                            }
+                            img.alt = '图片';
+                            contentDiv.appendChild(img);
+                        } catch (e) {}
+                    });
+                }
+
+                contentDiv.appendChild(timeEl);
+
+                if (role === 'user') {
+                    const btn = document.createElement('button');
+                    btn.className = 'edit-btn';
+                    btn.textContent = '编辑';
+                    btn.title = '编辑此消息并重新生成后续回复';
+                    const idx = Math.max(0, state.messages.length - 1);
+                    btn.addEventListener('click', () => enterEditMode(idx, textEl));
+                    contentDiv.insertBefore(btn, timeEl);
+                }
+
+                msgEl.appendChild(avatar);
+                msgEl.appendChild(contentDiv);
+
+                const emptyState = messagesWrapper.querySelector('.empty-state');
+                if (emptyState) emptyState.remove();
+
+                messagesWrapper.appendChild(msgEl);
+
+                // 滚动：强制模式用于用户刚发送的消息
+                if (forceScroll) {
+                    scrollToBottom();
+                }
+                return msgEl;
+            }
+
+            // ================================================================
+            //  编辑模式（原逻辑，增加强制滚动）
+            // ================================================================
+            function enterEditMode(messageIndex, textEl) {
+                if (state.isSending) return;
+                const original = getTextFromContent(state.messages[messageIndex].content);
+
+                const ta = document.createElement('textarea');
+                ta.style.width = '100%';
+                ta.style.minHeight = '60px';
+                ta.value = original;
+
+                const controls = document.createElement('div');
+                controls.className = 'edit-controls';
+
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'edit-save';
+                saveBtn.textContent = '保存';
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'edit-cancel';
+                cancelBtn.textContent = '取消';
+
+                controls.appendChild(saveBtn);
+                controls.appendChild(cancelBtn);
+
+                const parent = textEl.parentElement;
+                textEl.style.display = 'none';
+                parent.insertBefore(ta, textEl);
+                parent.insertBefore(controls, textEl);
+                ta.focus();
+
+                cancelBtn.addEventListener('click', () => {
+                    ta.remove();
+                    controls.remove();
+                    textEl.style.display = '';
+                });
+
+                saveBtn.addEventListener('click', async () => {
+                    const newText = ta.value.trim();
+                    if (!newText) return;
+                    ta.disabled = true;
+                    saveBtn.disabled = true;
+                    cancelBtn.disabled = true;
+                    try {
+                        await performChangeTalkAndReply(messageIndex, newText);
+                    } catch (e) {
+                        console.error('编辑消息失败', e);
+                        addMessage('assistant', '❌ 编辑失败，请重试');
+                    } finally {
+                        // 清理UI（renderMessages会重建）
+                    }
+                });
+            }
+
+            async function performChangeTalkAndReply(changeIndex, newInput) {
+                if (state.isSending) return;
+                state.isSending = true;
+                sendBtn.disabled = true;
+                messageInput.disabled = true;
+
+                try {
+                    state.messages = state.messages.slice(0, changeIndex);
+                    state.messages.push({ role: 'user', content: newInput });
+                    renderMessages();
+                    // 强制滚动到底部（用户主动编辑）
+                    scrollToBottom();
+
+                    const form = new URLSearchParams();
+                    form.append('talk_id', state.talkId);
+                    form.append('change_talk_id', String(changeIndex));
+                    form.append('new_input', newInput);
+
+                    const changeResp = await fetch('/api/change_talk', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: form.toString()
+                    });
+
+                    if (!changeResp.ok) {
+                        const err = await changeResp.json().catch(() => ({}));
+                        throw new Error(err.error || 'change_talk failed');
+                    }
+
+                    // 添加AI加载占位
+                    const aiMsgEl = document.createElement('div');
+                    aiMsgEl.className = 'message assistant';
+                    const avatar = document.createElement('div');
+                    avatar.className = 'message-avatar';
+                    avatar.textContent = '[AI]';
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'message-content';
+                    const textEl = document.createElement('div');
+                    textEl.className = 'message-text';
+                    textEl.innerHTML = '<div class="message-loading"><span></span><span></span><span></span></div>';
+                    contentDiv.appendChild(textEl);
+                    aiMsgEl.appendChild(avatar);
+                    aiMsgEl.appendChild(contentDiv);
+                    messagesWrapper.appendChild(aiMsgEl);
+                    scrollToBottom(); // 强制滚动
+
+                    const payload = { new_message: newInput, talk_id: state.talkId, pictures_base64: [] };
+                    let bodyStrChange;
+                    try { bodyStrChange = JSON.stringify(payload); } catch (e) { bodyStrChange = JSON.stringify({ new_message: newInput, talk_id: state.talkId, pictures_base64: [] }); }
+                    const response = await fetch('/api/ai_reply', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: bodyStrChange
+                    });
+
+                    if (!response.ok) {
+                        textEl.textContent = '❌ 生成回复失败';
+                        throw new Error('ai_reply failed');
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let aiReply = '';
+                    textEl.innerHTML = '';
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const wasAtBottom = isAtBottom();
+                        const chunk = decoder.decode(value);
+                        aiReply += chunk;
+                        try {
+                            textEl.innerHTML = renderMarkdown(aiReply);
+                        } catch (err) {
+                            textEl.textContent = aiReply;
+                        }
+                        // 仅当更新前处于底部时才跟随滚动
+                        maintainScroll(wasAtBottom);
+                    }
+
+                    state.messages.push({ role: 'assistant', content: aiReply });
+                    renderMessages();
+                    // 流式结束后，若用户仍在底部则跟随
+                    maintainScroll(isAtBottom());
+
+                } finally {
+                    state.isSending = false;
+                    sendBtn.disabled = false;
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                }
+            }
+
+            // ================================================================
+            //  发送消息（主要入口）
+            // ================================================================
+            async function sendMessage(picturesBase64) {
+                const rawText = messageInput.value.trim();
+                let text = rawText;
+                if (text && text.length > MAX_TEXT_CHARS) {
+                    text = text.slice(text.length - MAX_TEXT_CHARS);
+                    addMessage('system', `⚠ 文本过长，已截断为最后 ${MAX_TEXT_CHARS} 字符。`);
+                }
+                if (!text && (!Array.isArray(picturesBase64) || picturesBase64.length === 0)) return;
+                if (state.isSending) return;
+
+                state.isSending = true;
+                sendBtn.disabled = true;
+                messageInput.disabled = true;
+
+                // 用户消息
+                const msgObj = { role: 'user', content: text };
+                let dataUrlsPreview = null;
+                if (Array.isArray(picturesBase64) && picturesBase64.length > 0) {
+                    if (typeof picturesBase64[0] === 'object') {
+                        dataUrlsPreview = picturesBase64.map(it => it.dataUrl);
+                        msgObj.pictures = dataUrlsPreview;
+                    } else {
+                        dataUrlsPreview = picturesBase64.map(p => (typeof p === 'string' && p.indexOf(',') !== -1) ? p : ('data:image/png;base64,' + p));
+                        msgObj.pictures = dataUrlsPreview;
+                    }
+                }
+                state.messages.push(msgObj);
+                // 用户消息强制滚动到底部
+                addMessage('user', text, dataUrlsPreview, true);
+                messageInput.value = '';
+
+                try {
+                    // AI 加载占位
+                    const aiMsgEl = document.createElement('div');
+                    aiMsgEl.className = 'message assistant';
+                    const avatar = document.createElement('div');
+                    avatar.className = 'message-avatar';
+                    avatar.textContent = '[AI]';
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'message-content';
+                    const textEl = document.createElement('div');
+                    textEl.className = 'message-text';
+                    textEl.innerHTML = '<div class="message-loading"><span></span><span></span><span></span></div>';
+                    contentDiv.appendChild(textEl);
+                    aiMsgEl.appendChild(avatar);
+                    aiMsgEl.appendChild(contentDiv);
+                    messagesWrapper.appendChild(aiMsgEl);
+                    scrollToBottom(); // 强制滚动
+
+                    // 处理图片
+                    let base64List = [];
+                    if (Array.isArray(picturesBase64) && picturesBase64.length > 0) {
+                        if (typeof picturesBase64[0] === 'object') {
+                            picturesBase64.forEach(it => {
+                                if (it.dataUrl) {
+                                    const idx = it.dataUrl.indexOf(',');
+                                    base64List.push(idx >= 0 ? it.dataUrl.slice(idx + 1) : it.dataUrl);
+                                } else if (it.base64) {
+                                    base64List.push(it.base64);
+                                }
+                            });
+                        } else {
+                            picturesBase64.forEach(p => {
+                                if (typeof p === 'string') {
+                                    if (p.indexOf(',') !== -1) {
+                                        const idx = p.indexOf(',');
+                                        base64List.push(p.slice(idx + 1));
+                                    } else {
+                                        base64List.push(p);
+                                    }
+                                }
+                            });
+                            if (base64List.length > MAX_IMAGE_UPLOADS) {
+                                base64List = base64List.slice(0, MAX_IMAGE_UPLOADS);
+                                addMessage('system', `⚠ 图片数量过多，已限制为最多 ${MAX_IMAGE_UPLOADS} 张上传并压缩。`);
+                            }
+                        }
+                    }
+
+                    let sendText = text;
+                    if ((!sendText || sendText.trim() === '') && base64List.length > 0) sendText = '[图片]';
+
+                    const payload = { new_message: sendText, talk_id: state.talkId, pictures_base64: base64List };
+                    let bodyStr;
+                    try { bodyStr = JSON.stringify(payload); } catch (err) { bodyStr = JSON.stringify({ new_message: text, talk_id: state.talkId, pictures_base64: [] }); }
+                    const response = await fetch('/api/ai_reply', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: bodyStr
+                    });
+
+                    if (!response.ok) {
+                        textEl.textContent = '❌ 出错了，请重试';
+                        throw new Error('API error');
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let aiReply = '';
+                    textEl.innerHTML = '';
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const wasAtBottom = isAtBottom();
+                        const chunk = decoder.decode(value);
+                        aiReply += chunk;
+                        try {
+                            textEl.innerHTML = renderMarkdown(aiReply);
+                        } catch (err) {
+                            console.error('Render streaming markdown failed:', err);
+                            textEl.textContent = aiReply;
+                        }
+                        // 仅当更新前处于底部时才跟随滚动
+                        maintainScroll(wasAtBottom);
+                    }
+
+                    state.messages.push({ role: 'assistant', content: aiReply });
+
+                } catch (error) {
+                    console.error('Send message error:', error);
+                    addMessage('assistant', '❌ 网络错误，请稍后重试');
+                } finally {
+                    state.isSending = false;
+                    sendBtn.disabled = false;
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                    // 流式结束后，若用户仍在底部则跟随
+                    maintainScroll(isAtBottom());
+                }
+            }
+
+            // ================================================================
+            //  模型切换、UI事件绑定等（与原版相同，但增加滚动处理）
+            // ================================================================
+            async function loadModels() {
+                try {
+                    const response = await fetch('/api/dir_model', { method: 'POST', credentials: 'same-origin' });
+                    if (!response.ok) throw new Error('加载模型列表失败');
+                    const result = await response.json();
+                    if (result.success && Array.isArray(result.models) && result.models.length > 0) {
+                        state.modelOptions = result.models;
+                        // 与服务端会话对齐：显示真正生效的模型，避免“显示深度思考、实际未开启”
+                        try {
+                            const curResp = await fetch('/api/current_model', { method: 'POST', credentials: 'same-origin' });
+                            const curData = await curResp.json();
+                            if (curData.success && curData.current && result.models.includes(curData.current)) {
+                                state.currentModel = curData.current;
+                            }
+                        } catch (e) {}
+                        if (!state.currentModel) state.currentModel = result.models[0];
+                        if (modelSelect) {
+                            modelSelect.innerHTML = result.models.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+                            modelSelect.value = state.currentModel;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Load model list error:', error);
+                }
+            }
+
+            async function switchModel(modelName) {
+                if (!modelName || state.currentModel === modelName) return;
+                try {
+                    const response = await fetch(`/api/choose_model?model_name=${encodeURIComponent(modelName)}`, { method: 'POST', credentials: 'same-origin' });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || '模型切换失败');
+                    state.currentModel = modelName;
+                    if (modelSelect) modelSelect.value = state.currentModel;
+                    addMessage('system', `已切换到模型：${modelName}`);
+                } catch (error) {
+                    console.error('Model switch error:', error);
+                    addMessage('assistant', '❌ 模型切换失败，请检查后端接口是否可用');
+                }
+            }
+
+            // 加载提示词列表
+            async function loadPrompts() {
+                try {
+                    const response = await fetch('/api/dir_prompt', { method: 'POST', credentials: 'same-origin' });
+                    if (!response.ok) throw new Error('加载提示词失败');
+                    const result = await response.json();
+                    if (promptSelect && result.success && Array.isArray(result.prompts) && result.prompts.length) {
+                        promptSelect.innerHTML = result.prompts.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+                    }
+                } catch (error) {
+                    console.error('Load prompts error:', error);
+                }
+            }
+
+            // 截取移植：把当前对话一部分 + 所选提示词复制为新对话
+            if (forkBtn) {
+                forkBtn.addEventListener('click', async () => {
+                    const convCount = state.messages.filter(m => m.role !== 'system').length;
+                    if (convCount === 0) { alert('当前对话没有可截取的消息'); return; }
+                    const startRaw = prompt(`输入截取起始序号（1-${convCount}，各条消息左上角已标注序号）：`, '1');
+                    if (startRaw === null) return;   // 取消 → 中止
+                    const start = parseInt(startRaw, 10);
+                    const endRaw = prompt(`输入截取结束序号（可留空 = 到最后一条，范围 1-${convCount}）：`, '');
+                    if (endRaw === null) return;     // 取消 → 中止
+                    const end = (endRaw.trim() === '') ? null : parseInt(endRaw, 10);
+                    if (isNaN(start) || (end !== null && isNaN(end))) { alert('请输入有效的数字序号'); return; }
+                    const promptName = promptSelect ? promptSelect.value : '';
+                    try {
+                        const resp = await fetch('/api/talk_fork', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ talk_id: state.talkId, start, end, prompt_name: promptName }),
+                            credentials: 'same-origin'
+                        });
+                        const data = await resp.json();
+                        if (!resp.ok) throw new Error(data.error || '创建失败');
+                        if (confirm(`已创建新对话「${data.talk_name}」（截取 ${data.copied} 条消息），是否进入？`)) {
+                            window.location.href = `/chat/${encodeURIComponent(data.talk_id)}`;
+                        }
+                    } catch (error) {
+                        alert('截取移植失败：' + error.message);
+                    }
+                });
+            }
+
+            // 初始化UI
+            function initUI() {
+                if (state.talkName) chatTitle.textContent = state.talkName;
+                if (state.username) chatUsername.textContent = state.username;
+                if (markdownToggleBtn) {
+                    markdownToggleBtn.classList.toggle('active', state.isMarkdown);
+                    markdownToggleBtn.textContent = state.isMarkdown ? 'Markdown 预览' : '原始文本';
+                }
+                if (modelSelect) modelSelect.value = state.currentModel;
+                renderMessages();
+            }
+
+            // 事件绑定
+            if (markdownToggleBtn) {
+                markdownToggleBtn.addEventListener('click', () => {
+                    state.isMarkdown = !state.isMarkdown;
+                    markdownToggleBtn.classList.toggle('active', state.isMarkdown);
+                    markdownToggleBtn.textContent = state.isMarkdown ? 'Markdown 预览' : '原始文本';
+                    renderMessages();
+                });
+            }
+
+            if (modelSelect) {
+                modelSelect.addEventListener('change', (e) => {
+                    switchModel(e.target.value);
+                });
+            }
+
+            sendBtn.addEventListener('click', () => sendMessage());
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            messageInput.addEventListener('input', () => {
+                messageInput.style.height = 'auto';
+                messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+            });
+
+            // 拖拽图片
+            async function filesToBase64(files) {
+                const out = [];
+                try {
+                    const fileArr = Array.from(files || []).filter(f => f && f.type && f.type.startsWith('image/'));
+                    if (fileArr.length === 0) return out;
+                    const limited = fileArr.slice(0, MAX_IMAGE_UPLOADS);
+                    for (let i = 0; i < limited.length; i++) {
+                        const f = limited[i];
+                        const origDataUrl = await new Promise((res, rej) => {
+                            const reader = new FileReader();
+                            reader.onload = () => res(reader.result);
+                            reader.onerror = rej;
+                            reader.readAsDataURL(f);
+                        });
+                        const img = await new Promise((res, rej) => {
+                            const im = new Image();
+                            im.onload = () => res(im);
+                            im.onerror = rej;
+                            im.src = origDataUrl;
+                        });
+                        let tw = img.width, th = img.height;
+                        const maxSide = Math.max(tw, th);
+                        if (maxSide > MAX_IMAGE_DIM) {
+                            const scale = MAX_IMAGE_DIM / maxSide;
+                            tw = Math.round(tw * scale);
+                            th = Math.round(th * scale);
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = Math.max(1, tw);
+                        canvas.height = Math.max(1, th);
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', IMAGE_QUALITY);
+                        const idx = compressedDataUrl.indexOf(',');
+                        const base64 = idx >= 0 ? compressedDataUrl.slice(idx + 1) : compressedDataUrl;
+                        out.push({ dataUrl: compressedDataUrl, base64 });
+                    }
+                } catch (err) {
+                    console.error('filesToBase64 error:', err);
+                }
+                return out;
+            }
+
+            function handleDropEvent(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const dt = e.dataTransfer;
+                if (!dt) return;
+                const files = dt.files;
+                if (!files || files.length === 0) return;
+                filesToBase64(files).then((items) => {
+                    if (items.length === 0) return;
+                    sendMessage(items);
+                }).catch(err => console.error('文件转base64失败', err));
+            }
+
+            messagesWrapper.addEventListener('dragover', (e) => { e.preventDefault(); });
+            messagesWrapper.addEventListener('drop', handleDropEvent);
+            document.addEventListener('dragover', (e) => { e.preventDefault(); });
+            document.addEventListener('drop', (e) => {
+                const target = e.target;
+                if (target && (messagesWrapper.contains(target) || target === messagesWrapper)) {
+                    handleDropEvent(e);
+                } else {
+                    e.preventDefault();
+                }
+            });
+
+            // 启动
+            await loadModels();
+            await loadPrompts();
+            initUI();
+
+            // 同步主题
+            try {
+                const resp = await fetch('/api/check_bk', { credentials: 'same-origin' });
+                const data = await resp.json();
+                if (data.name === '淡青') {
+                    document.documentElement.classList.add('theme-light');
+                }
+                if (data.url) {
+                    document.body.style.backgroundImage = `url('${data.url}')`;
+                }
+            } catch(e) {}
+        })();
+    </script>
+</body>
+</html>

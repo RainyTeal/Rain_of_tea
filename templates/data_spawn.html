@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>数据生成器</title>
+    <style>
+        body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#f6fbfa;color:#173f35;padding:18px}
+        .card{max-width:780px;margin:28px auto;background:#fff;padding:20px;border-radius:16px;box-shadow:0 8px 20px rgba(0,0,0,0.06)}
+        label{display:block;margin-top:12px;font-weight:600}
+        input[type=text],textarea,input[type=number]{width:100%;padding:10px;margin-top:6px;border:1px solid #e2efe7;border-radius:8px}
+        button{margin-top:14px;padding:10px 14px;border-radius:10px;background:#7fb7a4;color:#fff;border:none;cursor:pointer}
+        button:disabled{opacity:0.6}
+        .hint{margin-top:12px;color:#4f7f6f;font-size:0.95rem}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>题目数据生成器</h2>
+        <p class="hint">填写题目说明（让后端生成数据生成器代码）、参考答案，以及样例数量，然后点击生成并下载压缩包。</p>
+
+        <form id="spawnForm">
+            <label for="title">题目描述（title）</label>
+            <textarea id="title" name="title" rows="30" placeholder="例如：给定N个数，求……" required ></textarea>
+
+            <label for="answer">参考答案（可选，C++ 源码）</label>
+            <textarea id="answer" name="answer" rows="30" placeholder="放入参考答案程序，程序将用于生成输出" ></textarea>
+
+            <label for="sum">样例数（sum）</label>
+            <input id="sum" name="sum" type="number" value="10" min="1" required />
+
+            <button id="submitBtn" type="submit">生成并下载 ZIP</button>
+            <div id="status" class="hint" aria-live="polite"></div>
+        </form>
+    </div>
+
+    <script>
+        (function(){
+            const form=document.getElementById('spawnForm');
+            const btn=document.getElementById('submitBtn');
+            const status=document.getElementById('status');
+
+            form.addEventListener('submit', async (e)=>{
+                e.preventDefault();
+                status.textContent='正在请求生成，请耐心等待...(数分钟是正常现象 请勿刷新页面)';
+                btn.disabled=true;
+                try{
+                    const title=document.getElementById('title').value.trim();
+                    const answer=document.getElementById('answer').value;
+                    const sum=document.getElementById('sum').value;
+
+                    const formBody = new URLSearchParams();
+                    formBody.append('title', title);
+                    formBody.append('answer', answer);
+                    formBody.append('sum', sum);
+
+                    const resp = await fetch('/api/data_spawn', {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/zip','Content-Type': 'application/x-www-form-urlencoded' },
+                        body: formBody
+                    });
+
+                    if(!resp.ok){
+                        let errText='请求失败';
+                        try{ const j=await resp.json(); errText=j.error||j.message||JSON.stringify(j);}catch(e){ errText=await resp.text(); }
+                        status.textContent='错误：'+errText;
+                        btn.disabled=false;
+                        return;
+                    }
+
+                    const blob = await resp.blob();
+                    const filename = (resp.headers.get('content-disposition')||'').split('filename=')[1] || (title.replace(/\s+/g,'_')||'data') + '.zip';
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename.replace(/\"/g,'');
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    status.textContent='生成完成，已触发下载。';
+                }catch(err){
+                    console.error(err);
+                    status.textContent='发生异常：'+err.message;
+                }finally{
+                    btn.disabled=false;
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

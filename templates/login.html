@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="{{ theme_class | default('theme-light') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>stdcharly's web</title>
+    <style>
+        /* ===== CSS 主题变量 ===== */
+        :root {
+            --bg-body: #1A1A1E;
+            --bg-overlay: rgba(255, 255, 255, 0.82);
+            --bg-card: rgba(255, 255, 255, 0.86);
+            --text-primary: #1f4f40;
+            --text-secondary: #4c6f61;
+            --text-muted: #678a7b;
+            --accent: #5fae91;
+            --accent-hover: #3c6b5a;
+            --input-bg: rgba(250, 254, 252, 0.95);
+            --input-border: rgba(103, 144, 121, 0.3);
+            --input-focus: #6fb39f;
+            --tab-inactive: #678a7b;
+            --tab-active: #1f4f40;
+            --tab-underline: #5fae91;
+            --label-color: #39594c;
+            --card-shadow: 0 24px 50px rgba(34, 56, 45, 0.14);
+        }
+        .theme-light {
+            --bg-body: #c1e7de;
+            --bg-overlay: rgba(246, 251, 249, 0.70);
+            --bg-card: rgba(255, 255, 255, 0.86);
+            --text-primary: #1f4f40;
+            --text-secondary: #4c6f61;
+            --text-muted: #678a7b;
+            --accent: #5fae91;
+            --accent-hover: #3c6b5a;
+            --input-bg: rgba(250, 254, 252, 0.95);
+            --input-border: rgba(103, 144, 121, 0.3);
+            --input-focus: #6fb39f;
+            --tab-inactive: #678a7b;
+            --tab-active: #1f4f40;
+            --tab-underline: #5fae91;
+            --label-color: #39594c;
+            --card-shadow: 0 24px 50px rgba(34, 56, 45, 0.14);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Noto Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+        }
+
+        .login-card {
+            max-width: 460px;
+            width: 100%;
+            background: var(--bg-overlay);
+            border-radius: 32px;
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.78);
+            box-shadow: 0 24px 50px rgba(34, 56, 45, 0.14);
+            padding: 2rem 2rem 2.2rem;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .login-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 28px 68px rgba(34, 56, 45, 0.18);
+        }
+
+        .mode-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 1.8rem;
+            border-bottom: 1px solid rgba(124, 154, 142, 0.24);
+            padding-bottom: 0.65rem;
+        }
+
+        .mode-tab {
+            font-size: 1.08rem;
+            font-weight: 500;
+            background: none;
+            border: none;
+            padding: 0.35rem 0.4rem;
+            cursor: pointer;
+            color: #678a7b;
+            transition: color 0.2s ease;
+            font-family: inherit;
+            letter-spacing: 0.3px;
+            position: relative;
+        }
+
+        .mode-tab.active {
+            color: #1f4f40;
+            font-weight: 600;
+        }
+
+        .mode-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -0.7rem;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #5fae91;
+            border-radius: 999px;
+        }
+
+        .mode-tab:hover:not(.active) {
+            color: #3c6b5a;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 1.4rem;
+        }
+        .login-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f4f40;
+            letter-spacing: -0.3px;
+            margin-bottom: 0.45rem;
+        }
+        .login-description {
+            font-size: 0.95rem;
+            color: #4c6f61;
+            line-height: 1.65;
+        }
+
+        .input-group {
+            margin-bottom: 1.3rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .input-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #39594c;
+            margin-bottom: 0.55rem;
+        }
+        .input-group input {
+            padding: 1rem 1rem;
+            font-size: 1rem;
+            border: 1px solid rgba(103, 144, 121, 0.3);
+            border-radius: 18px;
+            background-color: rgba(250, 254, 252, 0.95);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            outline: none;
+            font-family: inherit;
+            color: #17372d;
+        }
+        .input-group input:focus {
+            border-color: #6fb39f;
+            box-shadow: 0 0 0 4px rgba(111, 179, 159, 0.12);
+            background-color: #ffffff;
+        }
+        .input-group input::placeholder {
+            color: #9ebaa8;
+        }
+
+        .password-toggle-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 0.35rem;
+        }
+
+        .password-toggle {
+            appearance: none;
+            border: none;
+            background: transparent;
+            color: #4d7c6d;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0;
+            transition: color 0.2s ease;
+        }
+        .password-toggle:hover {
+            color: #265446;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 1rem 1.1rem;
+            background: linear-gradient(135deg, #5fae91 0%, #3a8b78 100%);
+            border: none;
+            border-radius: 999px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #ffffff;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            font-family: inherit;
+            margin-top: 0.75rem;
+        }
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 28px rgba(40, 84, 71, 0.16);
+        }
+        .action-btn:active {
+            transform: translateY(0);
+        }
+        .action-btn:disabled {
+            background: #b6d4c7;
+            color: #5e7b6d;
+            cursor: not-allowed;
+            opacity: 0.9;
+            box-shadow: none;
+        }
+
+        .info-note {
+            font-size: 0.78rem;
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #5c7b6a;
+            line-height: 1.5;
+        }
+
+        /* Toast 轻提示 - 自动消失，无需确认 */
+        .toast-message {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background-color: rgba(30, 45, 40, 0.95);
+            backdrop-filter: blur(8px);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 48px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 9999;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            max-width: 90vw;
+            word-break: break-word;
+            text-align: center;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            opacity: 0;
+        }
+        .toast-message.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast-message.toast-error {
+            background-color: rgba(188, 90, 76, 0.95);
+        }
+        .toast-message.toast-success {
+            background-color: rgba(42, 107, 85, 0.95);
+        }
+    </style>
+</head>
+<body style="background-image: url('{{ bg_url | default('/static/bg.png') }}');">
+<div class="login-card" id="appCard">
+    <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="login">登录</button>
+        <button class="mode-tab" data-mode="register">注册</button>
+    </div>
+
+    <div class="login-header">
+        <h1 id="formTitle">登录</h1>
+    </div>
+
+    <form id="authForm" action="javascript:void(0);" method="post" novalidate>
+        <div class="input-group">
+            <label for="username">用户名</label>
+            <input type="text" id="username" name="username" placeholder="请输入用户名" autocomplete="username" required>
+        </div>
+        <div class="input-group">
+            <label for="password">密码</label>
+            <input type="password" id="password" name="password" placeholder="请输入密码" autocomplete="current-password" required>
+            <div class="password-toggle-wrapper">
+                <button type="button" class="password-toggle" id="passwordToggleBtn">显示密码</button>
+            </div>
+        </div>
+        <button type="submit" class="action-btn" id="submitBtn">登 录</button>
+    </form>
+
+    <div class="info-note">Firefly</div>
+</div>
+
+<script>
+    (function() {
+        // DOM 元素
+        const authForm = document.getElementById('authForm');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const submitBtn = document.getElementById('submitBtn');
+        const formTitle = document.getElementById('formTitle');
+        const modeTabs = document.querySelectorAll('.mode-tab');
+
+        // API 端点
+        const LOGIN_API = '/api/login';
+        const REGISTER_API = '/api/register';
+
+        const passwordToggleBtn = document.getElementById('passwordToggleBtn');
+
+        let currentMode = 'login';      // 'login' 或 'register'
+        let isRequesting = false;
+
+        // ---------- Toast 轻提示（自动消失） ----------
+        let activeToast = null;
+        function showToast(message, isError = true) {
+            if (activeToast && activeToast.parentNode) {
+                activeToast.remove();
+                activeToast = null;
+            }
+            const toast = document.createElement('div');
+            toast.className = 'toast-message';
+            toast.classList.add(isError ? 'toast-error' : 'toast-success');
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            activeToast = toast;
+            setTimeout(() => {
+                if (toast && toast.parentNode) {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentNode) toast.remove();
+                        if (activeToast === toast) activeToast = null;
+                    }, 250);
+                }
+            }, 2000);
+        }
+
+        // 前端校验
+        function validateForm() {
+            const username = usernameInput?.value.trim() || '';
+            const password = passwordInput?.value || '';
+            if (!username) {
+                showToast('请输入用户名');
+                usernameInput?.focus();
+                return false;
+            }
+            if (!password) {
+                showToast('请输入密码');
+                passwordInput?.focus();
+                return false;
+            }
+            if (username.length < 2) {
+                showToast('用户名至少需要2个字符');
+                usernameInput?.focus();
+                return false;
+            }
+            if (password.length < 3) {
+                showToast('密码长度至少3位');
+                passwordInput?.focus();
+                return false;
+            }
+            return true;
+        }
+
+        function updateUIByMode() {
+            if (currentMode === 'login') {
+                formTitle.innerText = '登录';
+                submitBtn.textContent = isRequesting ? '登录中...' : '登 录';
+            } else {
+                formTitle.innerText = '注册';
+                submitBtn.textContent = isRequesting ? '注册中...' : '注 册';
+            }
+            modeTabs.forEach(tab => {
+                const mode = tab.getAttribute('data-mode');
+                if (mode === currentMode) tab.classList.add('active');
+                else tab.classList.remove('active');
+            });
+        }
+
+        function switchMode(mode) {
+            if (mode === currentMode) return;
+            if (isRequesting) {
+                showToast('请稍后，正在处理请求...');
+                return;
+            }
+            currentMode = mode;
+            updateUIByMode();
+            usernameInput?.focus();
+        }
+
+        function setLoading(loading) {
+            isRequesting = loading;
+            if (submitBtn) {
+                submitBtn.disabled = loading;
+                submitBtn.textContent = loading 
+                    ? (currentMode === 'login' ? '登录中...' : '注册中...')
+                    : (currentMode === 'login' ? '登 录' : '注 册');
+            }
+        }
+
+        function togglePasswordVisibility() {
+            const passwordField = document.getElementById('password');
+            if (!passwordField) return;
+            const isPassword = passwordField.type === 'password';
+            passwordField.type = isPassword ? 'text' : 'password';
+            if (passwordToggleBtn) {
+                passwordToggleBtn.textContent = isPassword ? '隐藏密码' : '显示密码';
+            }
+        }
+
+        // 登录请求
+        async function performLogin(username, password) {
+            const response = await fetch(LOGIN_API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password }),
+                credentials: 'same-origin',
+                redirect: 'manual'
+            });
+
+            if (response.ok || (response.status >= 300 && response.status < 400)) {
+                if (response.status === 200) {
+                    let data;
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        throw new Error('服务器响应格式异常');
+                    }
+                    if (data.redirect && typeof data.redirect === 'string') {
+                        window.location.href = data.redirect;
+                        return;
+                    } else if (data.success === true && data.redirect) {
+                        window.location.href = data.redirect;
+                        return;
+                    } else if (data.success === true && !data.redirect) {
+                        window.location.reload();
+                        return;
+                    } else {
+                        throw new Error(data.error || data.message || '登录失败');
+                    }
+                }
+                else if (response.status >= 300 && response.status < 400) {
+                    const location = response.headers.get('location');
+                    if (location) {
+                        window.location.href = location;
+                        return;
+                    } else {
+                        throw new Error('重定向响应缺少 Location 头');
+                    }
+                }
+                else {
+                    window.location.reload();
+                    return;
+                }
+            }
+
+            let errorText = '登录失败，请检查账号或网络';
+            try {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    errorText = data.error || data.message || errorText;
+                } else {
+                    const text = await response.text();
+                    if (text && text.trim()) errorText = text.trim();
+                }
+            } catch (e) {}
+            throw new Error(errorText);
+        }
+
+        // 注册请求
+        async function performRegister(username, password) {
+            const response = await fetch(REGISTER_API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password }),
+                credentials: 'same-origin'
+            });
+
+            const contentType = response.headers.get('content-type');
+            const isJson = contentType && contentType.includes('application/json');
+            
+            if (response.ok) {
+                if (isJson) {
+                    const data = await response.json();
+                    if (data.success === true) {
+                        return { success: true, message: data.message || '注册成功' };
+                    } else {
+                        throw new Error(data.error || data.message || '注册失败');
+                    }
+                } else {
+                    const textResp = await response.text();
+                    if (textResp && (textResp.includes('成功') || textResp === 'ok')) {
+                        return { success: true, message: '注册成功' };
+                    }
+                    throw new Error('注册响应格式异常');
+                }
+            } else {
+                let errorMsg = '注册失败，请稍后重试';
+                if (isJson) {
+                    try {
+                        const data = await response.json();
+                        errorMsg = data.error || data.message || errorMsg;
+                    } catch (e) {}
+                } else {
+                    const textErr = await response.text();
+                    if (textErr && textErr.trim()) errorMsg = textErr.trim();
+                }
+                throw new Error(errorMsg);
+            }
+        }
+
+        // 注册成功处理：先恢复按钮，再切换到登录页，清空密码保留用户名
+        function handleRegisterSuccess(usernameValue, successMsg) {
+            // 1. 显示成功提示（自动消失）
+            showToast(successMsg || '注册成功！请登录', false);
+            // 2. ★ 先解除 loading 状态，恢复按钮 ★
+            setLoading(false);
+            // 3. 再切换回登录模式（此时 isRequesting = false，不会阻塞）
+            if (currentMode !== 'login') {
+                // 直接修改 currentMode 避免 switchMode 里的 isRequesting 检查（但 isRequesting 已经是 false）
+                // 为了复用样式更新，直接调用 switchMode 即可
+                switchMode('login');
+            } else {
+                updateUIByMode();
+            }
+            // 4. 保留用户名，清空密码
+            if (usernameInput) usernameInput.value = usernameValue;
+            if (passwordInput) passwordInput.value = '';
+            usernameInput?.focus();
+        }
+
+        // 表单提交核心
+        async function onSubmitHandler(e) {
+            e.preventDefault();
+            if (isRequesting) {
+                showToast('请勿重复提交，请稍后');
+                return;
+            }
+            if (!validateForm()) return;
+
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+            setLoading(true);
+
+            try {
+                if (currentMode === 'login') {
+                    await performLogin(username, password);
+                    // 登录成功会跳转，下面代码一般不会执行
+                    setLoading(false);
+                    showToast('登录成功，正在跳转...', false);
+                    setTimeout(() => window.location.reload(), 800);
+                } 
+                else if (currentMode === 'register') {
+                    const regResult = await performRegister(username, password);
+                    if (regResult && regResult.success) {
+                        handleRegisterSuccess(username, regResult.message);
+                    } else {
+                        throw new Error('注册失败，请重试');
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || (currentMode === 'login' ? '登录失败' : '注册失败'), true);
+                setLoading(false);
+                if (err.message && err.message.includes('用户名已存在')) {
+                    usernameInput?.focus();
+                } else {
+                    passwordInput?.focus();
+                }
+            }
+        }
+
+        // 绑定模式切换
+        function bindModeSwitchers() {
+            modeTabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const mode = tab.getAttribute('data-mode');
+                    if (mode === 'login' || mode === 'register') {
+                        switchMode(mode);
+                    }
+                });
+            });
+        }
+
+        // 初始化
+        function init() {
+            currentMode = 'login';
+            isRequesting = false;
+            updateUIByMode();
+            setLoading(false);
+            bindModeSwitchers();
+            authForm?.addEventListener('submit', onSubmitHandler);
+            passwordToggleBtn?.addEventListener('click', togglePasswordVisibility);
+            if (usernameInput) usernameInput.value = '';
+            if (passwordInput) passwordInput.value = '';
+            // 封禁跳转提示
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('banned') === '1') {
+                setTimeout(() => showToast('账号已被封禁，无法登录，如有疑问请联系管理员', true), 300);
+            }
+        }
+
+        init();
+    })();
+</script>
+</body>
+</html>
