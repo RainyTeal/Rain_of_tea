@@ -27,7 +27,7 @@ pip install -r requirements.txt
 
 ## 配置
 
-复制 `.env.example` 为 `.env`，并填写你自己的配置（不要把真实密钥提交到仓库）：
+复制 `.env.example` 为 `.env`，并填写你自己的配置
 
 ```bash
 cp .env.example .env
