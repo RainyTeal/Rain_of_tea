@@ -70,3 +70,7 @@ templates/              # Jinja2 前端页面与静态资源
 ## License
 
 尚未选择开源许可证。
+
+## 作者
+stdCharly
+RainyTeal
