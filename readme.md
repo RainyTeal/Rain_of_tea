@@ -72,5 +72,5 @@ templates/              # Jinja2 前端页面与静态资源
 尚未选择开源许可证。
 
 ## 作者
-stdCharly
+stdCharly  
 RainyTeal
